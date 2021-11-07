@@ -5,7 +5,7 @@ WORKDIR /src
 ENV PORT=8080 DEBUG=s3proxy AWS_NODEJS_CONNECTION_REUSE_ENABLED=1 NODE_ENV=production
 EXPOSE $PORT
 COPY package.json package-lock.json express-s3proxy.js ./
-HEALTHCHECK CMD curl -f http://localhost:${PORT}/health || exit 1
+HEALTHCHECK --start-period=30s CMD curl -f http://localhost:${PORT}/health || exit 1
 RUN apk --update-cache upgrade \
     && npm ci --only=production \ 
     && apk add --no-cache curl tini\
