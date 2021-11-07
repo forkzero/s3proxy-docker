@@ -22,7 +22,7 @@ const S3Proxy = require('s3proxy')
 class EnvironmentError extends Error {}
 
 /*
-	Check required environment variables: BUCKET and PORT
+  Check required environment variables: BUCKET and PORT
 */
 if ('BUCKET' in process.env && 'PORT' in process.env) {
   debug(`starting with BUCKET=${process.env.BUCKET}, PORT=${process.env.PORT}`)
@@ -51,7 +51,7 @@ function handleError (req, res, err) {
 //
 function getCredentials () {
   const file = './credentials.json'
-  var contents = undefined
+  var contents
   try {
     const credentials = JSON.parse(fs.readFileSync(file)).Credentials
     if (process.env.NODE_ENV.match(/^prod/i)) {
