@@ -1,7 +1,6 @@
 const test = require('ava')
 const app = require('../express-s3proxy.js')
 const http = require('http')
-const s3proxy = require('s3proxy')
 const request = require('supertest')
 
 test.before(async t => {
