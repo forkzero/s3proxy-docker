@@ -12,6 +12,8 @@ on:
 env:
   BUCKET: s3proxy-public
   PORT: 8080
+  AWS_ACCESS_KEY_ID: fake
+  AWS_SECRET_ACCESS_KEY: fake
 
 jobs:
   test:
