@@ -15,3 +15,9 @@ npm outdated
 ncu --upgrade
 npm --silent install
 npm outdated
+npm audit
+npm audit --fix
+
+echo Changes:
+git diff
+

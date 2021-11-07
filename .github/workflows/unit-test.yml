@@ -1,0 +1,27 @@
+---
+# Mega-Linter GitHub Action configuration file
+# More info at https://megalinter.github.io
+name: Unit-Test
+
+on:
+  # Trigger mega-linter at every push. Action will also be visible from Pull Requests to master
+  push: # Comment this line to trigger action only on pull-requests (not recommended if you don't pay for GH Actions)
+  pull_request:
+    branches: [master, main]
+
+env:
+  BUCKET: s3proxy-public
+  PORT: 8080
+
+jobs:
+  test:
+    name: Unit-Tests
+    runs-on: ubuntu-latest
+    steps:
+      # Git Checkout
+      - name: Checkout Code
+        uses: actions/checkout@v2
+      - name: Install Dependencies
+        run: npm ci --no-audit
+      - name: Test
+        run: npm test
