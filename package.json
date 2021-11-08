@@ -21,6 +21,7 @@
   "scripts": {
     "test": "ava",
     "watch": "ava --watch",
+    "ncu-upgrade": "ncu --upgrade",
     "credentials": "aws sts get-session-token --duration 900 > credentials.json",
     "docker": "echo running s3proxy:test && npm run credentials && docker run --cpus .3 -e PM2_INSTANCES=1 -v $PWD/credentials.json:/src/credentials.json:ro -p 8080:8080 -e BUCKET=s3proxy-public -t s3proxy:test; rm credentials.json",
     "dockerize-for-test": "docker buildx build --progress plain --build-arg VERSION=$npm_package_version --target test --load -t s3proxy:test .",

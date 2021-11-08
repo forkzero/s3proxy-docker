@@ -12,7 +12,7 @@ rm Dockerfile.bak
 
 echo Updating npm dependencies
 npm outdated
-ncu --upgrade
+npm run ncu-upgrade
 npm --silent install
 npm outdated
 npm audit
