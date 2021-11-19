@@ -14,7 +14,7 @@
   "main": "PORT=8080 node express-s3proxy.js",
   "devDependencies": {
     "ava": "^3.15.0",
-    "mega-linter-runner": "^5.0.7",
+    "mega-linter-runner": "^5.2.0",
     "nock": "^13.1.4",
     "supertest": "^6.1.6"
   },
