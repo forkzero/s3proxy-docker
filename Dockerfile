@@ -1,4 +1,4 @@
-FROM node:current-alpine@sha256:959c4fc79a753b8b797c4fc9da967c7a81b4a3a3ff93d484dfe00092bf9fd584 as base
+FROM node:current-alpine@sha256:993bdfb0da7ae8fa4dad7282f797e3e26e88f810d410e0b0409d132d1fb17af3 as base
 ARG VERSION
 WORKDIR /src
 # Set default environment variables. Can be overridden via docker run -e
