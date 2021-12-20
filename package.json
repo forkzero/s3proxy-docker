@@ -2,7 +2,7 @@
   "dependencies": {
     "aws-xray-sdk": "^3.3.4",
     "body-parser": "^1.19.1",
-    "express": "^4.17.1",
+    "express": "^4.17.2",
     "express-request-id": "^1.4.1",
     "helmet": "^4.6.0",
     "morgan": "^1.10.0",
