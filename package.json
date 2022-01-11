@@ -15,7 +15,7 @@
   "devDependencies": {
     "ava": "^4.0.0",
     "mega-linter-runner": "^5.5.0",
-    "nock": "^13.2.1",
+    "nock": "^13.2.2",
     "npm-check-updates": "^12.1.0",
     "supertest": "^6.1.6"
   },
