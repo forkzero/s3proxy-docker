@@ -13,7 +13,7 @@
   "version": "1.0.0",
   "main": "PORT=8080 node express-s3proxy.js",
   "devDependencies": {
-    "ava": "^4.0.0",
+    "ava": "^4.3.0",
     "mega-linter-runner": "^5.5.0",
     "nock": "^13.2.1",
     "npm-check-updates": "^12.1.0",
