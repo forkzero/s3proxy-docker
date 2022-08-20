@@ -1,23 +1,23 @@
 {
   "dependencies": {
-    "aws-xray-sdk": "^3.3.4",
-    "body-parser": "^1.19.1",
-    "express": "^4.17.2",
+    "aws-xray-sdk": "^3.3.6",
+    "body-parser": "^1.20.0",
+    "express": "^4.18.1",
     "express-request-id": "^1.4.1",
-    "helmet": "^5.0.1",
+    "helmet": "^5.1.1",
     "morgan": "^1.10.0",
-    "s3proxy": "^1.6.2"
+    "s3proxy": "^1.6.3"
   },
   "name": "s3proxy-docker",
   "description": "Docker runtime for S3Proxy NodeJS Express Application",
   "version": "1.0.0",
   "main": "PORT=8080 node express-s3proxy.js",
   "devDependencies": {
-    "ava": "^4.0.0",
-    "mega-linter-runner": "^5.5.0",
-    "nock": "^13.2.1",
-    "npm-check-updates": "^12.1.0",
-    "supertest": "^6.1.6"
+    "ava": "^4.3.1",
+    "mega-linter-runner": "^6.5.0",
+    "nock": "^13.2.9",
+    "npm-check-updates": "^16.0.5",
+    "supertest": "^6.2.4"
   },
   "scripts": {
     "test": "ava",
