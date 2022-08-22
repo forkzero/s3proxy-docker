@@ -35,10 +35,6 @@ jobs:
         with:
           token: ${{ secrets.PAT || secrets.GITHUB_TOKEN }}
           fetch-depth: 0
-
-      - name: Update Dependencies
-        run: ./update-dependencies.sh
-
       # Mega-Linter
       - name: Mega-Linter
         id: ml
