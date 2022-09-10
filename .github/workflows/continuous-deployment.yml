@@ -87,6 +87,9 @@ jobs:
   test:
     name: Unit-Test
     runs-on: ubuntu-latest
+    env:
+      BUCKET: s3proxy-public
+      PORT: 8080   
     steps:
       # Git Checkout
       - name: Checkout Code
@@ -110,6 +113,9 @@ jobs:
         uses: actions/setup-node@v2
         with:
           node-version: 16
+      - name: Install syft
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
       - name: docker build and push to dockerhub
         env:
           DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
@@ -117,4 +123,19 @@ jobs:
         run: |
           npm run docker-login-dockerhub
           npm run dockerize-for-prod-dockerhub
+      - name: Scan image for security issues
+        uses: Azure/container-scan@v0
+        env:
+          # Skip `won't fix` CVEs
+          # See https://github.com/Azure/container-scan/issues/61
+          TRIVY_IGNORE_UNFIXED: true
+        with:
+          image-name: s3proxy:test
+          severity-threshold: HIGH
+          run-quality-checks: true
+      - name: scan container
+        run: |
+          docker --version
+          docker scan s3proxy:test || exit 0
+
 
