@@ -10,7 +10,7 @@
   },
   "name": "s3proxy-docker",
   "description": "Docker runtime for S3Proxy NodeJS Express Application",
-  "version": "1.6.4",
+  "version": "1.6.5",
   "main": "PORT=8080 node express-s3proxy.js",
   "devDependencies": {
     "ava": "^5.1.1",
