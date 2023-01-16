@@ -9,7 +9,7 @@ COPY package.json package-lock.json express-s3proxy.js ./
 HEALTHCHECK --interval=60s CMD curl -f http://localhost:${PORT}/health || exit 1
 RUN apk --update-cache upgrade \
     && npm ci --only=production \ 
-    && apk add --no-cache curl~=7.83.1 tini~=0.19.0 \
+    && apk add --no-cache curl tini \
     && npm cache clean --force \
     && rm -rf ~/.npm
 
