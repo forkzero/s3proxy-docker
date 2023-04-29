@@ -123,16 +123,6 @@ jobs:
         run: |
           npm run docker-login-dockerhub
           npm run dockerize-for-prod-dockerhub
-      - name: Scan image for security issues
-        uses: Azure/container-scan@v0
-        env:
-          # Skip `won't fix` CVEs
-          # See https://github.com/Azure/container-scan/issues/61
-          TRIVY_IGNORE_UNFIXED: true
-        with:
-          image-name: s3proxy:test
-          severity-threshold: HIGH
-          run-quality-checks: true
       - name: scan container
         run: |
           docker --version
