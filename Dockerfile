@@ -1,4 +1,4 @@
-FROM node:current-alpine@sha256:ab3603cb7934b21f1ffb522b1a1d538809516c6e4cd73b144716bc1830aad1a6 as base
+FROM node:current-alpine@sha256:cc4e8f3d78a276fa05eae1803b6f8cbb43145441f54c828ab14e0c19dd95c6fd as base
 
 ARG VERSION
 WORKDIR /src
@@ -9,12 +9,12 @@ COPY package.json package-lock.json express-s3proxy.js ./
 HEALTHCHECK --interval=60s CMD curl -f http://localhost:${PORT}/health || exit 1
 RUN apk --update-cache upgrade \
     && npm ci --only=production \ 
-    && apk add --no-cache curl tini \
+    && apk add --no-cache curl~=8 tini~=0.19 \
     && npm cache clean --force \
     && rm -rf ~/.npm
 
 FROM base as test
-RUN apk add --no-cache jq~=1.6 bash~=5.1.16
+RUN apk add --no-cache jq~=1.6 bash~=5.2
 USER node
 ENV DEBUG=s3proxy,express NODE_ENV=development
 ENTRYPOINT ["/sbin/tini", "--"]

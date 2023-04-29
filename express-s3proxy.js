@@ -93,8 +93,8 @@ app.get('/health', (req, res) => {
 })
 
 // health check s3
-app.get('/health/s3', (req, res) => {
-  proxy.healthCheckStream(res).on('error', () => {
+app.get('/health/s3', async (req, res) => {
+  (await proxy.healthCheckStream(res)).on('error', () => {
     // just end the request and let the HTTP status code convey the error
     res.end()
   }).pipe(res)
@@ -117,8 +117,8 @@ app.route('/*')
     await proxy.head(req, res)
     res.end()
   })
-  .get((req, res) => {
-    proxy.get(req, res).on('error', (err) => {
+  .get(async (req, res) => {
+    (await proxy.get(req, res)).on('error', (err) => {
       handleError(req, res, err)
     }).pipe(res)
   })
