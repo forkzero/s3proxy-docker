@@ -1,10 +1,10 @@
 {
   "dependencies": {
-    "aws-xray-sdk": "^3.4.1",
-    "body-parser": "^1.20.1",
+    "aws-xray-sdk": "^3.5.0",
+    "body-parser": "^1.20.2",
     "express": "^4.18.2",
     "express-request-id": "1.4.1",
-    "helmet": "^6.0.1",
+    "helmet": "^6.1.5",
     "morgan": "^1.10.0",
     "s3proxy": "^1.6.5"
   },
@@ -13,10 +13,10 @@
   "version": "1.6.5",
   "main": "PORT=8080 node express-s3proxy.js",
   "devDependencies": {
-    "ava": "^5.1.1",
-    "mega-linter-runner": "^6.18.0",
-    "nock": "^13.3.0",
-    "npm-check-updates": "^16.6.2",
+    "ava": "^5.2.0",
+    "mega-linter-runner": "^6.22.2",
+    "nock": "^13.3.1",
+    "npm-check-updates": "^16.10.9",
     "supertest": "^6.3.3"
   },
   "scripts": {
