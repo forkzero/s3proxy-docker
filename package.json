@@ -6,7 +6,7 @@
     "express-request-id": "1.4.1",
     "helmet": "^6.1.5",
     "morgan": "^1.10.0",
-    "s3proxy": "^1.6.5"
+    "s3proxy": "^2.0.0"
   },
   "name": "s3proxy-docker",
   "description": "Docker runtime for S3Proxy NodeJS Express Application",
@@ -24,7 +24,7 @@
     "watch": "ava --watch",
     "ncu-upgrade": "ncu --upgrade",
     "credentials": "aws sts get-session-token --duration 900 > credentials.json",
-    "docker": "echo running s3proxy:test && npm run credentials && docker run --cpus .3 -e PM2_INSTANCES=1 -v $PWD/credentials.json:/src/credentials.json:ro -p 8080:8080 -e BUCKET=s3proxy-public -t s3proxy:test; rm credentials.json",
+    "docker": "echo running s3proxy:test && npm run credentials && docker run --cpus .3 -e PM2_INSTANCES=1 -v $PWD/credentials.json:/src/credentials.json:ro -p 8080:8080 -e AWS_REGION=us-east-1 -e BUCKET=s3proxy-public -t s3proxy:test; rm credentials.json",
     "dockerize-for-test": "docker buildx build --progress plain --build-arg VERSION=$npm_package_version --target test --load -t s3proxy:test .",
     "dockerize-for-prod-aws": "docker buildx build --build-arg VERSION=$npm_package_version --push --target production -t ${AWS_ACCOUNT}.dkr.ecr.us-east-1.amazonaws.com/s3proxy:latest -t ${AWS_ACCOUNT}.dkr.ecr.us-east-1.amazonaws.com/s3proxy:$npm_package_version --platform=linux/amd64,linux/arm64 .",
     "dockerize-for-prod-dockerhub": "docker buildx build --build-arg VERSION=$npm_package_version --push --target production -t forkzero/s3proxy:$npm_package_version --platform=linux/amd64,linux/arm64 .",
