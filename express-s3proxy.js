@@ -83,7 +83,7 @@ const proxy = new S3Proxy({ bucket, credentials })
 proxy.init()
 
 proxy.on('error', (err) => {
-  throw new Error(`error initializing s3proxy for bucket ${bucket}: ${err.statusCode} ${err.code}`)
+  throw new Error(`error initializing s3proxy for bucket ${bucket}: [${err.name}] ${err.message}`)
 })
 
 // basic health check
