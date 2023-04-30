@@ -5,7 +5,7 @@ const http = require('http')
 const request = require('supertest')
 
 test.before(async t => {
-  nock('https://s3proxy-public.s3.amazonaws.com:443', {"encodedQueryParams":true})
+  nock('https://s3proxy-public.s3.us-east-1.amazonaws.com:443', {"encodedQueryParams":true})
   .head('/')
   .reply(200)
   nock.disableNetConnect()

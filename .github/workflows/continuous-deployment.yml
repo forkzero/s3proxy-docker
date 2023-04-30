@@ -89,7 +89,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       BUCKET: s3proxy-public
-      PORT: 8080   
+      PORT: 8080
+      AWS_REGION: us-east-1
     steps:
       # Git Checkout
       - name: Checkout Code

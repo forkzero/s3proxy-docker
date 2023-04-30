@@ -79,7 +79,7 @@ if (process.env.NODE_ENV !== 'test') {
 
 // initialize the s3proxy
 const credentials = getCredentials()
-const proxy = new S3Proxy({ bucket, logger: console, credentials })
+const proxy = new S3Proxy({ bucket, credentials })
 proxy.init()
 
 proxy.on('error', (err) => {
