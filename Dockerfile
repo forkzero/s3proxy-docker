@@ -1,4 +1,4 @@
-FROM node:current-alpine@sha256:cc4e8f3d78a276fa05eae1803b6f8cbb43145441f54c828ab14e0c19dd95c6fd as base
+FROM node:current-alpine@sha256:f62abc08fe1004555c4f28b6793af8345a76230b21d2d249976f329079e2fef2 as base
 
 ARG VERSION
 WORKDIR /src
