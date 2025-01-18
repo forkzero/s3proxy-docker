@@ -6,7 +6,7 @@
     "express-request-id": "1.4.1",
     "helmet": "^7.0.0",
     "morgan": "^1.10.0",
-    "s3proxy": "^2.0.1"
+    "s3proxy": "^2.0.2"
   },
   "name": "s3proxy-docker",
   "description": "Docker runtime for S3Proxy NodeJS Express Application",
