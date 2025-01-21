@@ -9,12 +9,12 @@ COPY package.json package-lock.json express-s3proxy.js ./
 HEALTHCHECK --interval=60s CMD curl -f http://localhost:${PORT}/health || exit 1
 RUN apk --update-cache upgrade \
     && npm ci --only=production \ 
-    && apk add --no-cache curl~=8 tini~=0.19 \
+    && apk add --no-cache curl tini \
     && npm cache clean --force \
     && rm -rf ~/.npm
 
 FROM base as test
-RUN apk add --no-cache jq~=1.6 bash~=5.2
+RUN apk add --no-cache jq bash
 USER node
 ENV DEBUG=s3proxy,express NODE_ENV=development
 ENTRYPOINT ["/sbin/tini", "--"]
