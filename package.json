@@ -1,52 +1,54 @@
 {
-  "dependencies": {
-    "aws-xray-sdk": "^3.5.1",
-    "body-parser": "^1.20.2",
-    "debug": "^4.4.0",
-    "express": "^4.18.2",
-    "express-request-id": "1.4.1",
-    "helmet": "^8.0.0",
-    "morgan": "^1.10.0",
-    "s3proxy": "^2.0.2"
-  },
   "name": "s3proxy-docker",
-  "description": "Docker runtime for S3Proxy NodeJS Express Application",
-  "version": "2.0.2",
-  "main": "PORT=8080 node express-s3proxy.js",
-  "devDependencies": {
-    "ava": "^5.3.1",
-    "mega-linter-runner": "^7.3.0",
-    "nock": "^13.3.3",
-    "npm-check-updates": "^16.13.2",
-    "supertest": "^7.0.0"
+  "description": "High-performance Docker container for S3Proxy with Fastify",
+  "version": "3.0.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22.13.0"
   },
+  "main": "server.js",
   "scripts": {
-    "test": "ava",
-    "watch": "ava --watch",
-    "ncu-upgrade": "ncu --upgrade",
-    "credentials": "aws sts get-session-token --duration 900 > credentials.json",
-    "docker": "echo running s3proxy:test && npm run credentials && docker run --cpus .3 -e PM2_INSTANCES=1 -v $PWD/credentials.json:/src/credentials.json:ro -p 8080:8080 -e AWS_REGION=us-east-1 -e BUCKET=s3proxy-public -t s3proxy:test; rm credentials.json",
-    "dockerize-for-test": "docker buildx build --progress plain --build-arg VERSION=$npm_package_version --target test --load -t s3proxy:test .",
-    "dockerize-for-prod-aws": "docker buildx build --build-arg VERSION=$npm_package_version --push --target production -t ${AWS_ACCOUNT}.dkr.ecr.us-east-1.amazonaws.com/s3proxy:latest -t ${AWS_ACCOUNT}.dkr.ecr.us-east-1.amazonaws.com/s3proxy:$npm_package_version --platform=linux/amd64,linux/arm64 .",
-    "dockerize-for-prod-dockerhub": "docker buildx build --build-arg VERSION=$npm_package_version --push --target production -t forkzero/s3proxy:$npm_package_version --platform=linux/amd64,linux/arm64 .",
-    "software-bill-of-materials": "docker buildx build --build-arg VERSION=$npm_package_version --load --target production -t forkzero/s3proxy:$npm_package_version . && syft forkzero/s3proxy:$npm_package_version > ./image-sbom.txt",
-    "docker-login-aws": "aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${AWS_ACCOUNT}.dkr.ecr.us-east-1.amazonaws.com",
-    "docker-login-dockerhub": "docker login --username ${DOCKERHUB_USER} --password ${DOCKERHUB_ACCESS_TOKEN}"
+    "start": "node server.js",
+    "dev": "NODE_ENV=development LOG_LEVEL=debug node --watch server.js",
+    "test": "node --test test/*.test.js",
+    "test:watch": "node --test --watch test/*.test.js",
+    "test:shared": "node test/shared-integration.js",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "docker:build": "docker build -t s3proxy-docker:latest .",
+    "docker:run": "docker run --rm -p 8080:8080 -e BUCKET=s3proxy-public s3proxy-docker:latest",
+    "docker:test": "docker build --target test -t s3proxy-docker:test . && docker run --rm s3proxy-docker:test",
+    "security:audit": "npm audit --audit-level moderate",
+    "deps:update": "npm update",
+    "deps:check": "npm outdated"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/forkzero/s3proxy-docker.git"
+  "dependencies": {
+    "s3proxy": "^3.0.0",
+    "fastify": "^5.4.0",
+    "@fastify/helmet": "^12.0.1",
+    "@fastify/sensible": "^6.0.1"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "pino-pretty": "^13.0.0"
   },
   "keywords": [
-    "s3proxy",
-    "docker",
     "s3",
-    "express"
+    "proxy",
+    "fastify",
+    "docker",
+    "aws",
+    "streaming",
+    "performance",
+    "typescript",
+    "ai",
+    "ml",
+    "models"
   ],
-  "author": "George Moon",
-  "license": "SEE LICENSE IN LICENSE.md",
-  "bugs": {
-    "url": "https://github.com/forkzero/s3proxy-docker/issues"
-  },
-  "homepage": "https://github.com/forkzero/s3proxy-docker#readme"
+  "author": "George Moon <george.moon@gmail.com>",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gmoon/s3proxy-docker.git"
+  }
 }

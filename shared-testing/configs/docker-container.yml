@@ -1,0 +1,60 @@
+# Artillery configuration for Docker container testing
+{
+  config: {
+    target: http://localhost:8082
+    phases: [
+      {
+        duration: 30
+        arrivalRate: 10
+        name: Docker container load test
+      }
+    ]
+    processor: ./test-processor.js
+  }
+  scenarios: [
+    {
+      name: Health check
+      weight: 20
+      flow: [
+        {
+          get: {
+            url: /health
+          }
+        }
+      ]
+    }
+    {
+      name: Version endpoint
+      weight: 10
+      flow: [
+        {
+          get: {
+            url: /version
+          }
+        }
+      ]
+    }
+    {
+      name: S3 health check
+      weight: 10
+      flow: [
+        {
+          get: {
+            url: /health/s3
+          }
+        }
+      ]
+    }
+    {
+      name: File requests (404 expected)
+      weight: 60
+      flow: [
+        {
+          get: {
+            url: /test-file-{{ $randomInt(1, 100) }}.txt
+          }
+        }
+      ]
+    }
+  ]
+}
