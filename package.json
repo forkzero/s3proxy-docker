@@ -1,7 +1,7 @@
 {
   "name": "s3proxy-docker",
-  "description": "High-performance Docker container for S3Proxy with Fastify",
-  "version": "3.0.0",
+  "description": "Docker runtime for s3proxy (Hono)",
+  "version": "4.1.0",
   "type": "module",
   "engines": {
     "node": ">=22.13.0"
@@ -9,33 +9,36 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "NODE_ENV=development LOG_LEVEL=debug node --watch server.js",
+    "dev": "NODE_ENV=development node --watch server.js",
     "test": "node --test test/*.test.js",
+    "test:app": "node --test test/server.test.js",
+    "test:container": "node --test test/docker-basic.test.js",
     "test:watch": "node --test --watch test/*.test.js",
     "test:shared": "node test/shared-integration.js",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
+    "credentials": "aws sts get-session-token --duration 900 > credentials.json",
     "docker:build": "docker build -t s3proxy-docker:latest .",
     "docker:run": "docker run --rm -p 8080:8080 -e BUCKET=s3proxy-public s3proxy-docker:latest",
     "docker:test": "docker build --target test -t s3proxy-docker:test . && docker run --rm s3proxy-docker:test",
+    "dockerize-for-prod-dockerhub": "docker buildx build --build-arg VERSION=$npm_package_version --push --target production -t forkzero/s3proxy:$npm_package_version -t forkzero/s3proxy:latest --platform=linux/amd64,linux/arm64 .",
+    "docker-login-dockerhub": "docker login --username ${DOCKERHUB_USER} --password ${DOCKERHUB_ACCESS_TOKEN}",
     "security:audit": "npm audit --audit-level moderate",
     "deps:update": "npm update",
     "deps:check": "npm outdated"
   },
   "dependencies": {
-    "s3proxy": "^3.0.0",
-    "fastify": "^5.4.0",
-    "@fastify/helmet": "^12.0.1",
-    "@fastify/sensible": "^6.0.1"
+    "s3proxy": "^4.1.0",
+    "hono": "^4.12.15",
+    "@hono/node-server": "^2.0.0"
   },
   "devDependencies": {
-    "@biomejs/biome": "^1.9.4",
-    "pino-pretty": "^13.0.0"
+    "@biomejs/biome": "^1.9.4"
   },
   "keywords": [
     "s3",
     "proxy",
-    "fastify",
+    "hono",
     "docker",
     "aws",
     "streaming",

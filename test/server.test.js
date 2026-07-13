@@ -61,7 +61,6 @@ describe('S3Proxy Docker Server', () => {
 
     assert.strictEqual(response.status, 200)
     assert.ok(data.s3proxy)
-    assert.ok(data.fastify)
     assert.ok(data.node)
     assert.ok(data.timestamp)
   })
@@ -73,25 +72,10 @@ describe('S3Proxy Docker Server', () => {
     assert.strictEqual(response.headers.get('location'), '/index.html')
   })
 
-  test('s3 health check handles missing bucket gracefully', async () => {
-    const response = await fetch(`${BASE_URL}/health/s3`)
-
-    // Should handle missing bucket gracefully
-    assert.ok(response.status === 200 || response.status === 503)
-  })
-
   test('server handles 404 for non-existent files', async () => {
     const response = await fetch(`${BASE_URL}/non-existent-file.txt`)
 
     assert.strictEqual(response.status, 404)
     assert.strictEqual(response.headers.get('content-type'), 'application/xml')
-  })
-
-  test('server sets security headers', async () => {
-    const response = await fetch(`${BASE_URL}/health`)
-
-    // Check for security headers from @fastify/helmet
-    assert.ok(response.headers.get('x-content-type-options'))
-    assert.ok(response.headers.get('x-frame-options'))
   })
 })
