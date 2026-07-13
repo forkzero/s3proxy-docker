@@ -1,238 +1,131 @@
 #!/usr/bin/env node
 
 /*
-  S3Proxy Fastify Production Server - v3.0.0
+  S3Proxy Hono Server
 
-  High-performance production server using Fastify and s3proxy
-  Start: PORT=8080 node server.js
-  
+  Docker runtime for s3proxy (https://github.com/gmoon/s3proxy) v4.
+  Streams objects from an S3 bucket over HTTP using the v4 `proxy.fetch()`
+  API and Hono on top of @hono/node-server.
+
+  Start: PORT=8080 BUCKET=my-bucket node server.js
+
   Author: George Moon <george.moon@gmail.com>
 */
 
 import fs from 'node:fs'
 import process from 'node:process'
-import Fastify from 'fastify'
-import { S3Proxy } from 's3proxy'
+import { Readable } from 'node:stream'
+import { serve } from '@hono/node-server'
+import { Hono } from 'hono'
+import { S3Proxy, S3ProxyError } from 's3proxy'
 
-// Environment validation
-const requiredEnvVars = ['BUCKET', 'PORT']
-const missingVars = requiredEnvVars.filter((varName) => !process.env[varName])
+const PORT = Number(process.env.PORT) || 8080
+const BUCKET = process.env.BUCKET
+const NODE_ENV = process.env.NODE_ENV || 'production'
 
-if (missingVars.length > 0) {
-  console.error(`❌ Missing required environment variables: ${missingVars.join(', ')}`)
+if (!BUCKET) {
+  console.error('❌ Missing required environment variable: BUCKET')
   process.exit(1)
 }
 
-const { BUCKET, PORT, NODE_ENV = 'production', LOG_LEVEL = 'info' } = process.env
-
-// Fastify instance with optimized configuration
-const fastify = Fastify({
-  logger: {
-    level: LOG_LEVEL,
-    ...(NODE_ENV === 'production'
-      ? {
-          // Structured JSON logging for production
-          serializers: {
-            req: (req) => ({
-              method: req.method,
-              url: req.url,
-              hostname: req.hostname,
-              remoteAddress: req.ip,
-              userAgent: req.headers['user-agent'],
-            }),
-            res: (res) => ({
-              statusCode: res.statusCode,
-              responseTime: res.responseTime,
-            }),
-          },
-        }
-      : {
-          // Pretty printing for development
-          transport: {
-            target: 'pino-pretty',
-            options: {
-              colorize: true,
-              translateTime: 'SYS:standard',
-            },
-          },
-        }),
-  },
-  trustProxy: true,
-  disableRequestLogging: false,
-  requestIdHeader: 'x-request-id',
-  requestIdLogLabel: 'reqId',
-})
-
-// Graceful shutdown handling
-const gracefulShutdown = async (signal) => {
-  fastify.log.info(`Received ${signal}, shutting down gracefully...`)
-  try {
-    await fastify.close()
-    fastify.log.info('Server closed successfully')
-    process.exit(0)
-  } catch (err) {
-    fastify.log.error('Error during shutdown:', err)
-    process.exit(1)
-  }
-}
-
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'))
-process.on('SIGINT', () => gracefulShutdown('SIGINT'))
-
-// Credential management (dev vs production)
+// Development credential handling.
+// In production the AWS SDK credential chain is used (instance role, env vars,
+// etc.). For local development a temporary credentials file can be bind-mounted
+// (see `npm run credentials`); it is never used when NODE_ENV starts with "prod".
 function getCredentials() {
-  const credentialsFile = './credentials.json'
-
+  const file = fs.existsSync('/src/credentials.json')
+    ? '/src/credentials.json'
+    : './credentials.json'
   try {
-    if (NODE_ENV?.match(/^prod/i)) {
-      fastify.log.info('Production mode: using AWS SDK credential chain')
+    if (/^prod/i.test(NODE_ENV)) {
       return undefined
     }
-
-    const credentialsData = JSON.parse(fs.readFileSync(credentialsFile, 'utf8'))
-    const credentials = credentialsData.Credentials
-
-    fastify.log.info(`Development mode: using credentials from ${credentialsFile}`)
+    const { Credentials } = JSON.parse(fs.readFileSync(file, 'utf8'))
+    console.log(`using credentials from ${file}`)
     return {
-      accessKeyId: credentials.AccessKeyId,
-      secretAccessKey: credentials.SecretAccessKey,
-      sessionToken: credentials.SessionToken,
+      accessKeyId: Credentials.AccessKeyId,
+      secretAccessKey: Credentials.SecretAccessKey,
+      sessionToken: Credentials.SessionToken,
     }
-  } catch (_error) {
-    fastify.log.info('Using AWS SDK credential chain')
+  } catch {
+    console.log('using AWS SDK credential chain')
     return undefined
   }
 }
 
-// Initialize S3Proxy
 const credentials = getCredentials()
-const proxy = new S3Proxy({ bucket: BUCKET, credentials })
+const proxy = new S3Proxy(credentials ? { bucket: BUCKET, credentials } : { bucket: BUCKET })
 
 try {
   await proxy.init()
-  fastify.log.info(`S3Proxy initialized successfully for bucket: ${BUCKET}`)
+  console.log(`S3Proxy initialized for bucket: ${BUCKET}`)
 } catch (error) {
-  fastify.log.error(`Failed to initialize S3Proxy for bucket ${BUCKET}:`, error)
+  console.error(`Failed to initialize S3Proxy for bucket: ${BUCKET}`, error)
   process.exit(1)
 }
 
-// Proxy error handling
 proxy.on('error', (error) => {
-  fastify.log.error('S3Proxy error:', error)
+  console.error('S3Proxy error:', error)
 })
 
-// Security headers plugin
-await fastify.register(import('@fastify/helmet'), {
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      scriptSrc: ["'self'"],
-      imgSrc: ["'self'", 'data:', 'https:'],
-    },
-  },
+const app = new Hono()
+
+// Liveness + S3 connectivity. healthCheck() throws if the bucket is unreachable.
+app.get('/health', async (c) => {
+  await proxy.healthCheck()
+  return c.json({ status: 'ok', timestamp: new Date().toISOString() })
 })
 
-// Request/Response time tracking
-await fastify.register(import('@fastify/sensible'))
-
-// Health check endpoints
-fastify.get('/health', async (_request, _reply) => {
-  return { status: 'ok', timestamp: new Date().toISOString() }
-})
-
-fastify.get('/health/s3', async (_request, reply) => {
-  try {
-    const _stream = await proxy.healthCheckStream(reply.raw)
-    return reply.hijack()
-  } catch (error) {
-    fastify.log.error('S3 health check failed:', error)
-    return reply.code(503).send({
-      status: 'error',
-      message: 'S3 connectivity check failed',
-      timestamp: new Date().toISOString(),
-    })
-  }
-})
-
-// Version endpoint
-fastify.get('/version', async (_request, _reply) => {
-  return {
+app.get('/version', (c) =>
+  c.json({
     s3proxy: S3Proxy.version(),
-    fastify: fastify.version,
+    hono: 'hono',
     node: process.version,
     timestamp: new Date().toISOString(),
-  }
-})
-
-// Root redirect
-fastify.get('/', async (_request, reply) => {
-  return reply.redirect(301, '/index.html')
-})
-
-// S3 proxy routes
-fastify.head('/*', async (request, reply) => {
-  try {
-    const _stream = await proxy.head(request.raw, reply.raw)
-    return reply.hijack()
-  } catch (error) {
-    fastify.log.error('HEAD request failed:', error)
-    return reply
-      .code(error.statusCode || 500)
-      .type('application/xml')
-      .send(
-        `<?xml version="1.0"?>\n<error code="${error.code || 'InternalError'}" statusCode="${error.statusCode || 500}">${error.message}</error>`
-      )
-  }
-})
-
-fastify.get('/*', async (request, reply) => {
-  try {
-    const stream = await proxy.get(request.raw, reply.raw)
-
-    stream.on('error', (error) => {
-      fastify.log.error('Stream error:', error)
-      if (!reply.sent) {
-        reply
-          .code(error.statusCode || 500)
-          .type('application/xml')
-          .send(
-            `<?xml version="1.0"?>\n<error code="${error.code || 'InternalError'}" statusCode="${error.statusCode || 500}">${error.message}</error>`
-          )
-      }
-    })
-
-    return reply.hijack()
-  } catch (error) {
-    fastify.log.error('GET request failed:', error)
-    return reply
-      .code(error.statusCode || 500)
-      .type('application/xml')
-      .send(
-        `<?xml version="1.0"?>\n<error code="${error.code || 'InternalError'}" statusCode="${error.statusCode || 500}">${error.message}</error>`
-      )
-  }
-})
-
-// Start server
-try {
-  const address = await fastify.listen({
-    port: Number.parseInt(PORT, 10),
-    host: '0.0.0.0',
   })
+)
 
-  fastify.log.info(`🚀 S3Proxy server listening on ${address}`)
-  fastify.log.info(`📦 S3Proxy version: ${S3Proxy.version()}`)
-  fastify.log.info(`⚡ Fastify version: ${fastify.version}`)
-  fastify.log.info(`🪣 S3 Bucket: ${BUCKET}`)
+app.get('/', (c) => c.redirect('/index.html', 301))
 
-  // Signal readiness for process managers (PM2, Docker, etc.)
-  if (process.send) {
-    process.send('ready')
+// Stream every key straight from S3. proxy.fetch() throws a typed S3ProxyError
+// on classified failures (404/403/416), which is handled by app.onError below.
+app.on(['GET', 'HEAD'], '/*', async (c) => {
+  const url = new URL(c.req.url)
+  const { stream, status, headers } = await proxy.fetch({
+    url: url.pathname + url.search,
+    method: c.req.method,
+    headers: Object.fromEntries(c.req.raw.headers),
+  })
+  // Node Readable → Web ReadableStream; backpressure propagates, no buffering.
+  const body = Readable.toWeb(stream)
+  return new Response(body, { status, headers })
+})
+
+// Render errors as XML, matching the s3proxy Express/Fastify examples.
+app.onError((error, c) => {
+  const status = error instanceof S3ProxyError ? error.statusCode : error.statusCode || 500
+  const code = error.code || error.name || 'InternalError'
+  if (status >= 500) {
+    console.error(`${c.req.method} ${c.req.url} failed:`, error)
+  } else {
+    console.log(`${c.req.method} ${c.req.url} -> ${status} ${code}`)
   }
-} catch (error) {
-  fastify.log.error('Failed to start server:', error)
-  process.exit(1)
-}
+  const xml = `<?xml version="1.0"?>\n<error code="${code}" statusCode="${status}">${error.message}</error>`
+  return new Response(xml, { status, headers: { 'content-type': 'application/xml' } })
+})
 
-export default fastify
+const server = serve({ fetch: app.fetch, port: PORT, hostname: '0.0.0.0' }, ({ port }) => {
+  console.log(`🚀 S3Proxy Hono server listening on port ${port}`)
+  console.log(`📦 s3proxy version: ${S3Proxy.version()}`)
+  console.log(`🪣 S3 bucket: ${BUCKET}`)
+})
+
+// Graceful shutdown for container stop / orchestrator signals.
+const shutdown = (signal) => {
+  console.log(`Received ${signal}, shutting down gracefully...`)
+  server.close(() => process.exit(0))
+}
+process.on('SIGTERM', () => shutdown('SIGTERM'))
+process.on('SIGINT', () => shutdown('SIGINT'))
+
+export default app
