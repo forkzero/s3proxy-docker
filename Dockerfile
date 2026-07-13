@@ -7,14 +7,15 @@
 # Test:   docker build --target test -t s3proxy:test . && docker run --rm s3proxy:test
 # Run:    docker run -e BUCKET=my-bucket -p 8080:8080 forkzero/s3proxy
 
-# s3proxy requires Node >= 22.13. Pin by digest in CI via Dependabot updates.
-ARG NODE_VERSION=22-alpine
-
 ########################################################################
 # base: OS packages, production dependencies, and the app. Shared by all
 # stages and, on its own, the runnable production image.
 ########################################################################
-FROM node:${NODE_VERSION} AS base
+# Node 22 on Alpine (s3proxy requires Node >= 22.13), pinned by digest for
+# reproducible builds. This is the multi-arch manifest-list digest, so the
+# amd64 + arm64 publish both resolve from it. Dependabot (docker ecosystem,
+# weekly) bumps the tag + digest when a new 22-alpine ships.
+FROM node:22-alpine@sha256:16e22a550f3863206a3f701448c45f7912c6896a62de43add43bb9c86130c3e2 AS base
 
 ARG VERSION
 WORKDIR /src
