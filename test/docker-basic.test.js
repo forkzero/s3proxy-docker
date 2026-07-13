@@ -12,7 +12,10 @@ import assert from 'node:assert'
 import { spawn } from 'node:child_process'
 import { after, before, describe, test } from 'node:test'
 
-const IMAGE = 's3proxy-docker:test'
+// Reuse a prebuilt image when S3PROXY_IMAGE is set (CI passes the image the
+// build job already produced); otherwise build one locally for the suite.
+const PREBUILT_IMAGE = process.env.S3PROXY_IMAGE
+const IMAGE = PREBUILT_IMAGE || 's3proxy-docker:test'
 
 // Run a command to completion, collecting stdout+stderr and the exit code.
 function run(cmd, args, { timeoutMs = 120000 } = {}) {
@@ -39,7 +42,8 @@ function run(cmd, args, { timeoutMs = 120000 } = {}) {
 
 describe('Docker container', () => {
   before(async () => {
-    // Build the production image once for the whole suite.
+    // Build the production image once for the whole suite (unless reusing one).
+    if (PREBUILT_IMAGE) return
     const { code, output } = await run('docker', [
       'build',
       '--target',
@@ -52,6 +56,8 @@ describe('Docker container', () => {
   })
 
   after(async () => {
+    // Only remove an image this suite built; never one it was handed.
+    if (PREBUILT_IMAGE) return
     await run('docker', ['image', 'rm', '-f', IMAGE], { timeoutMs: 30000 }).catch(() => {})
   })
 

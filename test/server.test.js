@@ -61,7 +61,6 @@ describe('S3Proxy Docker Server', () => {
 
     assert.strictEqual(response.status, 200)
     assert.ok(data.s3proxy)
-    assert.ok(data.hono)
     assert.ok(data.node)
     assert.ok(data.timestamp)
   })

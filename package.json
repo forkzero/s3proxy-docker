@@ -11,6 +11,8 @@
     "start": "node server.js",
     "dev": "NODE_ENV=development node --watch server.js",
     "test": "node --test test/*.test.js",
+    "test:app": "node --test test/server.test.js",
+    "test:container": "node --test test/docker-basic.test.js",
     "test:watch": "node --test --watch test/*.test.js",
     "test:shared": "node test/shared-integration.js",
     "lint": "biome check .",

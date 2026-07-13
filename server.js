@@ -17,29 +17,27 @@ import process from 'node:process'
 import { Readable } from 'node:stream'
 import { serve } from '@hono/node-server'
 import { Hono } from 'hono'
-import { S3Proxy, S3ProxyError } from 's3proxy'
+import { S3Proxy } from 's3proxy'
 
 const PORT = Number(process.env.PORT) || 8080
 const BUCKET = process.env.BUCKET
 const NODE_ENV = process.env.NODE_ENV || 'production'
+const S3PROXY_VERSION = S3Proxy.version()
 
 if (!BUCKET) {
   console.error('❌ Missing required environment variable: BUCKET')
   process.exit(1)
 }
 
-// Development credential handling.
-// In production the AWS SDK credential chain is used (instance role, env vars,
-// etc.). For local development a temporary credentials file can be bind-mounted
-// (see `npm run credentials`); it is never used when NODE_ENV starts with "prod".
+// Development credential handling. In production the AWS SDK credential chain is
+// used (instance role, env vars, etc.). In development a temporary credentials
+// file can be mounted at the working directory (see `npm run credentials`).
 function getCredentials() {
-  const file = fs.existsSync('/src/credentials.json')
-    ? '/src/credentials.json'
-    : './credentials.json'
+  if (/^prod/i.test(NODE_ENV)) {
+    return undefined
+  }
+  const file = './credentials.json'
   try {
-    if (/^prod/i.test(NODE_ENV)) {
-      return undefined
-    }
     const { Credentials } = JSON.parse(fs.readFileSync(file, 'utf8'))
     console.log(`using credentials from ${file}`)
     return {
@@ -53,8 +51,7 @@ function getCredentials() {
   }
 }
 
-const credentials = getCredentials()
-const proxy = new S3Proxy(credentials ? { bucket: BUCKET, credentials } : { bucket: BUCKET })
+const proxy = new S3Proxy({ bucket: BUCKET, credentials: getCredentials() })
 
 try {
   await proxy.init()
@@ -78,8 +75,7 @@ app.get('/health', async (c) => {
 
 app.get('/version', (c) =>
   c.json({
-    s3proxy: S3Proxy.version(),
-    hono: 'hono',
+    s3proxy: S3PROXY_VERSION,
     node: process.version,
     timestamp: new Date().toISOString(),
   })
@@ -103,7 +99,7 @@ app.on(['GET', 'HEAD'], '/*', async (c) => {
 
 // Render errors as XML, matching the s3proxy Express/Fastify examples.
 app.onError((error, c) => {
-  const status = error instanceof S3ProxyError ? error.statusCode : error.statusCode || 500
+  const status = error.statusCode || 500
   const code = error.code || error.name || 'InternalError'
   if (status >= 500) {
     console.error(`${c.req.method} ${c.req.url} failed:`, error)
@@ -116,7 +112,7 @@ app.onError((error, c) => {
 
 const server = serve({ fetch: app.fetch, port: PORT, hostname: '0.0.0.0' }, ({ port }) => {
   console.log(`🚀 S3Proxy Hono server listening on port ${port}`)
-  console.log(`📦 s3proxy version: ${S3Proxy.version()}`)
+  console.log(`📦 s3proxy version: ${S3PROXY_VERSION}`)
   console.log(`🪣 S3 bucket: ${BUCKET}`)
 })
 

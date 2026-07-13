@@ -56,7 +56,8 @@ FROM base AS test
 
 USER root
 ENV NODE_ENV=development
-RUN npm ci --no-audit --no-fund
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --no-audit --no-fund
 COPY . .
 USER node
 CMD ["npm", "test"]
