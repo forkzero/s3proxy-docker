@@ -1,11 +1,25 @@
 name: Publish
 
-# Publishes forkzero/s3proxy to Docker Hub when a GitHub Release is published.
-# The release tag (e.g. v4.1.0) drives the image tags via docker/metadata-action.
+# Publishes forkzero/s3proxy to Docker Hub. Triggered three ways, all of which
+# resolve the image tags from the release tag (e.g. v4.2.0 -> 4.2.0, 4.2, latest):
+#  - workflow_call: release-please invokes this when it cuts a release.
+#  - release: a manually published GitHub Release.
+#  - workflow_dispatch: manual re-publish of a given tag.
 on:
   release:
     types: [published]
+  workflow_call:
+    inputs:
+      tag:
+        description: Release tag to publish (e.g. v4.2.0)
+        required: true
+        type: string
   workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to publish (e.g. v4.2.0)
+        required: true
+        type: string
 
 env:
   IMAGE: forkzero/s3proxy
@@ -17,19 +31,32 @@ jobs:
     permissions:
       contents: read
     steps:
+      - name: Resolve release tag
+        id: tag
+        env:
+          TAG: ${{ inputs.tag || github.event.release.tag_name }}
+        run: |
+          test -n "$TAG" || { echo "no release tag supplied"; exit 1; }
+          VER="${TAG#v}"
+          echo "ref=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VER" >> "$GITHUB_OUTPUT"
+          echo "minor=${VER%.*}" >> "$GITHUB_OUTPUT"
+
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.tag.outputs.ref }}
 
       - name: Docker metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.IMAGE }}
-          # latest=auto tags `latest` for the newest non-prerelease semver
-          # release, and applies nothing spurious on a bare workflow_dispatch.
-          flavor: latest=auto
+          # Tags derived from the resolved version (semver-from-git-ref doesn't
+          # apply here: on a workflow_call the ref is main, not the tag).
           tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=${{ steps.tag.outputs.version }}
+            type=raw,value=${{ steps.tag.outputs.minor }}
+            type=raw,value=latest
 
       - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
@@ -50,12 +77,11 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            VERSION=${{ steps.meta.outputs.version }}
+            VERSION=${{ steps.tag.outputs.version }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           # Supply-chain attestations attached to the pushed image: an SPDX
-          # SBOM and max-level SLSA provenance. Replaces the old manual syft
-          # SBOM step; Docker Hub surfaces both.
+          # SBOM and max-level SLSA provenance. Docker Hub surfaces both.
           sbom: true
           provenance: mode=max
 
