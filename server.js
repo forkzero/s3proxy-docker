@@ -14,7 +14,6 @@
 
 import fs from 'node:fs'
 import process from 'node:process'
-import { Readable } from 'node:stream'
 import { serve } from '@hono/node-server'
 import { Hono } from 'hono'
 import { S3Proxy } from 's3proxy'
@@ -83,19 +82,10 @@ app.get('/version', (c) =>
 
 app.get('/', (c) => c.redirect('/index.html', 301))
 
-// Stream every key straight from S3. proxy.fetch() throws a typed S3ProxyError
-// on classified failures (404/403/416), which is handled by app.onError below.
-app.on(['GET', 'HEAD'], '/*', async (c) => {
-  const url = new URL(c.req.url)
-  const { stream, status, headers } = await proxy.fetch({
-    url: url.pathname + url.search,
-    method: c.req.method,
-    headers: Object.fromEntries(c.req.raw.headers),
-  })
-  // Node Readable → Web ReadableStream; backpressure propagates, no buffering.
-  const body = Readable.toWeb(stream)
-  return new Response(body, { status, headers })
-})
+// Stream every key straight from S3. fetchWeb() (s3proxy >= 4.2) adapts the Web
+// Request → Response and throws a typed S3ProxyError on classified failures
+// (404/403/416), which is handled by app.onError below.
+app.on(['GET', 'HEAD'], '/*', (c) => proxy.fetchWeb(c.req.raw))
 
 // Render errors as XML, matching the s3proxy Express/Fastify examples.
 app.onError((error, c) => {
