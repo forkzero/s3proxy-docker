@@ -1,0 +1,288 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  Reference deployment of the forkzero/s3proxy container on AWS Fargate behind
+  an Application Load Balancer. Streams objects from an S3 bucket over HTTP(S).
+  Bring your own VPC and subnets; HTTPS + DNS are optional (provide an ACM
+  certificate and hosted zone to enable them). Nothing here is account-specific.
+
+Parameters:
+  BucketName:
+    Type: String
+    Description: S3 bucket the proxy serves (the task role is granted s3:GetObject on it).
+  ContainerImage:
+    Type: String
+    Default: forkzero/s3proxy:latest
+    Description: Image to run. Pin a version in production, e.g. forkzero/s3proxy:4.2.
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC to deploy into.
+  SubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: >-
+      Two or more subnets in different AZs for the ALB and tasks. Use public
+      subnets (tasks get a public IP to reach S3), or private subnets with a
+      NAT gateway.
+  ContainerPort:
+    Type: Number
+    Default: 8080
+    Description: Port the container listens on (passed to the image as PORT).
+  DesiredCount:
+    Type: Number
+    Default: 2
+    Description: Number of tasks to run.
+  MinCapacity:
+    Type: Number
+    Default: 1
+    Description: Minimum tasks for autoscaling.
+  MaxCapacity:
+    Type: Number
+    Default: 4
+    Description: Maximum tasks for autoscaling.
+  Cpu:
+    Type: String
+    Default: "1024"
+    Description: Fargate task CPU units (256, 512, 1024, 2048, 4096).
+  Memory:
+    Type: String
+    Default: "2048"
+    Description: Fargate task memory (MiB), valid for the chosen CPU.
+  CertificateArn:
+    Type: String
+    Default: ""
+    Description: >-
+      Optional ACM certificate ARN. If set, the ALB listens on HTTPS/443;
+      otherwise it listens on HTTP/80.
+  DomainName:
+    Type: String
+    Default: ""
+    Description: >-
+      Optional fully-qualified name to alias to the ALB, e.g. s3proxy.example.com.
+      Requires HostedZoneName. Leave blank to skip DNS.
+  HostedZoneName:
+    Type: String
+    Default: ""
+    Description: >-
+      Optional Route 53 hosted zone the DomainName lives in, e.g. example.com
+      (no trailing dot).
+
+Conditions:
+  UseHttps: !Not [!Equals [!Ref CertificateArn, ""]]
+  CreateDns: !Not [!Equals [!Ref DomainName, ""]]
+
+Resources:
+  LoadBalancerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Sub "${AWS::StackName} ALB ingress"
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: !If [UseHttps, 443, 80]
+          ToPort: !If [UseHttps, 443, 80]
+          CidrIp: 0.0.0.0/0
+
+  ContainerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Sub "${AWS::StackName} task ingress from ALB"
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: !Ref ContainerPort
+          ToPort: !Ref ContainerPort
+          SourceSecurityGroupId: !Ref LoadBalancerSecurityGroup
+
+  LoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Scheme: internet-facing
+      Type: application
+      SecurityGroups:
+        - !Ref LoadBalancerSecurityGroup
+      Subnets: !Ref SubnetIds
+      LoadBalancerAttributes:
+        - Key: idle_timeout.timeout_seconds
+          Value: "60"
+
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      VpcId: !Ref VpcId
+      Port: !Ref ContainerPort
+      Protocol: HTTP
+      TargetType: ip
+      HealthCheckPath: /health
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 2
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: "60"
+
+  # One listener, shaped by whether a certificate was supplied: HTTPS/443 with
+  # the cert, else HTTP/80. A single (unconditional) resource so the Service can
+  # DependsOn it — the target group must be attached to a listener before the
+  # service registers targets.
+  Listener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref LoadBalancer
+      Port: !If [UseHttps, 443, 80]
+      Protocol: !If [UseHttps, HTTPS, HTTP]
+      Certificates: !If
+        - UseHttps
+        - - CertificateArn: !Ref CertificateArn
+        - !Ref AWS::NoValue
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref TargetGroup
+
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/ecs/${AWS::StackName}"
+      RetentionInDays: 30
+
+  # Grants the running container read access to the bucket it serves.
+  TaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: s3-read
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: s3:GetObject
+                Resource: !Sub "arn:${AWS::Partition}:s3:::${BucketName}/*"
+
+  # Lets ECS pull the image and write logs (managed AWS policy).
+  ExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - !Sub "arn:${AWS::Partition}:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+
+  Cluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Ref AWS::StackName
+      CapacityProviders:
+        - FARGATE
+
+  TaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Ref AWS::StackName
+      Cpu: !Ref Cpu
+      Memory: !Ref Memory
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      ExecutionRoleArn: !GetAtt ExecutionRole.Arn
+      TaskRoleArn: !GetAtt TaskRole.Arn
+      ContainerDefinitions:
+        - Name: s3proxy
+          Image: !Ref ContainerImage
+          Essential: true
+          PortMappings:
+            - ContainerPort: !Ref ContainerPort
+              Protocol: tcp
+          Environment:
+            - Name: BUCKET
+              Value: !Ref BucketName
+            - Name: PORT
+              Value: !Ref ContainerPort
+            - Name: AWS_NODEJS_CONNECTION_REUSE_ENABLED
+              Value: "1"
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-region: !Ref AWS::Region
+              awslogs-group: !Ref LogGroup
+              awslogs-stream-prefix: ecs
+
+  Service:
+    Type: AWS::ECS::Service
+    DependsOn: Listener
+    Properties:
+      Cluster: !Ref Cluster
+      ServiceName: s3proxy
+      TaskDefinition: !Ref TaskDefinition
+      LaunchType: FARGATE
+      DesiredCount: !Ref DesiredCount
+      HealthCheckGracePeriodSeconds: 60
+      LoadBalancers:
+        - ContainerName: s3proxy
+          ContainerPort: !Ref ContainerPort
+          TargetGroupArn: !Ref TargetGroup
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          SecurityGroups:
+            - !Ref ContainerSecurityGroup
+          Subnets: !Ref SubnetIds
+
+  AutoScalingTarget:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    Properties:
+      MinCapacity: !Ref MinCapacity
+      MaxCapacity: !Ref MaxCapacity
+      ResourceId: !Sub "service/${Cluster}/${Service.Name}"
+      ScalableDimension: ecs:service:DesiredCount
+      ServiceNamespace: ecs
+      # AWS-managed service-linked role for ECS autoscaling; no IAM role to define.
+      RoleARN: !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/aws-service-role/ecs.application-autoscaling.amazonaws.com/AWSServiceRoleForApplicationAutoScaling_ECSService"
+
+  AutoScalingPolicy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:
+      PolicyName: cpu-target-tracking
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId: !Ref AutoScalingTarget
+      TargetTrackingScalingPolicyConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ECSServiceAverageCPUUtilization
+        TargetValue: 70
+        ScaleInCooldown: 60
+        ScaleOutCooldown: 60
+
+  DnsRecord:
+    Type: AWS::Route53::RecordSet
+    Condition: CreateDns
+    Properties:
+      HostedZoneName: !Sub "${HostedZoneName}."
+      Name: !Sub "${DomainName}."
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt LoadBalancer.DNSName
+        HostedZoneId: !GetAtt LoadBalancer.CanonicalHostedZoneID
+
+Outputs:
+  LoadBalancerDns:
+    Description: Public DNS name of the load balancer.
+    Value: !GetAtt LoadBalancer.DNSName
+  Endpoint:
+    Description: URL to reach the proxy.
+    Value: !If
+      - CreateDns
+      - !Sub
+        - "${Scheme}://${DomainName}"
+        - Scheme: !If [UseHttps, https, http]
+      - !Sub
+        - "${Scheme}://${Dns}"
+        - Scheme: !If [UseHttps, https, http]
+          Dns: !GetAtt LoadBalancer.DNSName
