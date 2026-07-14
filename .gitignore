@@ -1,4 +1,10 @@
 .DS_Store
+
+# Local AWS credentials (temporary STS tokens written by `npm run credentials`).
+# Must never be committed — see README dev-credentials section.
+credentials.json
+.aws/
+
 # Logs
 logs
 *.log
