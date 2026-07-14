@@ -1,0 +1,42 @@
+name: Release Please
+
+# Automates versioning + releases from Conventional Commits. Each push to main
+# updates a "Release PR" (version bump in package.json + CHANGELOG.md). Merging
+# that PR tags the release and — via the workflow_call below — triggers the
+# Publish workflow to build & push the image. No manual version bumps or
+# `gh release create` needed.
+#
+# Uses the default GITHUB_TOKEN (no PAT): rather than rely on the release event
+# (which GITHUB_TOKEN-created releases don't emit), we call publish.yml directly
+# when release-please reports a release was created.
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+  security-events: write # for the Trivy SARIF upload in the called publish job
+
+jobs:
+  release-please:
+    name: Release PR / tag
+    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  publish:
+    name: Publish release
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    uses: ./.github/workflows/publish.yml
+    with:
+      tag: ${{ needs.release-please.outputs.tag_name }}
+    secrets: inherit
