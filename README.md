@@ -45,6 +45,32 @@ configure beyond the bucket.
 Missing or forbidden keys return an honest `404` / `403` with an XML error body
 (no v3-style empty-`200`).
 
+## Deploy on AWS
+
+[`deploy/aws-ecs/`](./deploy/aws-ecs/) is a reference CloudFormation stack that
+runs this image on **AWS Fargate** behind an Application Load Balancer, with a
+task role scoped to `s3:GetObject` on your bucket, `/health` health checks, and
+CPU autoscaling. Bring your own VPC and subnets; HTTPS and a Route 53 alias are
+optional:
+
+```bash
+aws cloudformation deploy \
+  --stack-name s3proxy \
+  --template-file deploy/aws-ecs/s3proxy-fargate.yaml \
+  --capabilities CAPABILITY_IAM \
+  --parameter-overrides \
+      BucketName=my-bucket \
+      VpcId=vpc-0123456789abcdef0 \
+      SubnetIds=subnet-aaaa,subnet-bbbb \
+      ContainerImage=forkzero/s3proxy:4.2
+```
+
+See [`deploy/aws-ecs/README.md`](./deploy/aws-ecs/README.md) for parameters,
+HTTPS/DNS setup, and how to try it against the public `s3proxy-public` demo
+bucket. For other targets, the container is a standard image — run it under
+Compose, Kubernetes, or any scheduler that can pass the `BUCKET` env var and an
+IAM role/credentials.
+
 ## Local development
 
 To run against a bucket that requires credentials, mint a short-lived session
