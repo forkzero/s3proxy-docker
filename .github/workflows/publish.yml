@@ -24,10 +24,12 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.IMAGE }}
+          # latest=auto tags `latest` for the newest non-prerelease semver
+          # release, and applies nothing spurious on a bare workflow_dispatch.
+          flavor: latest=auto
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            type=raw,value=latest,enable={{is_default_branch}}
 
       - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
