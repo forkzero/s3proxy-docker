@@ -14,7 +14,8 @@
     "test:app": "node --test test/server.test.js",
     "test:container": "node --test test/docker-basic.test.js",
     "test:watch": "node --test --watch test/*.test.js",
-    "test:shared": "node test/shared-integration.js",
+    "test:conformance": "artillery run --config node_modules/@forkzero/s3-website-test-kit/configs/conformance.yml --target ${TARGET:-http://localhost:8080} node_modules/@forkzero/s3-website-test-kit/scenarios/core/conformance.yml",
+    "test:load": "artillery run --config node_modules/@forkzero/s3-website-test-kit/configs/docker-container.yml --target ${TARGET:-http://localhost:8080} node_modules/@forkzero/s3-website-test-kit/scenarios/core/load-test.yml",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "credentials": "aws sts get-session-token --duration 900 > credentials.json",
@@ -33,7 +34,9 @@
     "s3proxy": "^4.2.0"
   },
   "devDependencies": {
-    "@biomejs/biome": "^1.9.4"
+    "@biomejs/biome": "^1.9.4",
+    "@forkzero/s3-website-test-kit": "^0.2.0",
+    "artillery": "^2.0.33"
   },
   "keywords": [
     "s3",

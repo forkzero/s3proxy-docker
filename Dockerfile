@@ -33,7 +33,7 @@ EXPOSE ${PORT}
 RUN apk --no-cache --update-cache upgrade \
     && apk add --no-cache tini
 
-COPY package.json package-lock.json ./
+COPY package.json package-lock.json .npmrc ./
 # BuildKit cache mount keeps the npm cache across builds without baking it
 # into the layer, so no `npm cache clean` step is needed.
 RUN --mount=type=cache,target=/root/.npm \
