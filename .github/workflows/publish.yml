@@ -53,6 +53,11 @@ jobs:
             VERSION=${{ steps.meta.outputs.version }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          # Supply-chain attestations attached to the pushed image: an SPDX
+          # SBOM and max-level SLSA provenance. Replaces the old manual syft
+          # SBOM step; Docker Hub surfaces both.
+          sbom: true
+          provenance: mode=max
 
   scan:
     name: Trivy Scan
