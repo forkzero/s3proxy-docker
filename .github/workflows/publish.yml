@@ -53,17 +53,25 @@ jobs:
             VERSION=${{ steps.meta.outputs.version }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          # Supply-chain attestations attached to the pushed image: an SPDX
+          # SBOM and max-level SLSA provenance. Replaces the old manual syft
+          # SBOM step; Docker Hub surfaces both.
+          sbom: true
+          provenance: mode=max
 
   scan:
     name: Trivy Scan
     runs-on: ubuntu-latest
     needs: [publish]
+    # Advisory only: the image is already published by the time this runs, so a
+    # scan/tooling hiccup must never mark the release failed.
+    continue-on-error: true
     permissions:
       contents: read
       security-events: write
     steps:
       - name: Scan published image
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@0.35.0
         with:
           image-ref: ${{ env.IMAGE }}:latest
           format: sarif
