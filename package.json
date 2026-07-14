@@ -34,7 +34,7 @@
     "s3proxy": "^4.2.1"
   },
   "devDependencies": {
-    "@biomejs/biome": "^1.9.4",
+    "@biomejs/biome": "^2.5.3",
     "@forkzero/s3-website-test-kit": "^0.2.1",
     "artillery": "^2.0.33"
   },
