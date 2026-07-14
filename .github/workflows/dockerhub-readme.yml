@@ -1,0 +1,28 @@
+name: Docker Hub README
+
+# Syncs the Docker Hub repository's overview (landing page) and short
+# description from DOCKERHUB.md, so the description is a versioned artifact in
+# this repo rather than hand-edited in the Docker Hub UI. Runs whenever the
+# file changes on main (no release required) and on manual dispatch.
+on:
+  push:
+    branches: [main]
+    paths:
+      - DOCKERHUB.md
+      - .github/workflows/dockerhub-readme.yml
+  workflow_dispatch:
+
+jobs:
+  sync:
+    name: Sync description
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Push README to Docker Hub
+        uses: peter-evans/dockerhub-description@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_ACCESS_TOKEN }}
+          repository: forkzero/s3proxy
+          short-description: "Front AWS S3 with a web server you control"
+          readme-filepath: ./DOCKERHUB.md
