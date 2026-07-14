@@ -31,7 +31,7 @@
   "dependencies": {
     "@hono/node-server": "^2.0.0",
     "hono": "^4.12.15",
-    "s3proxy": "^4.2.0"
+    "s3proxy": "^4.2.1"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
