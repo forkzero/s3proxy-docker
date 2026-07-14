@@ -46,7 +46,7 @@ jobs:
       - run: npm run test:app
 
   docker:
-    name: Docker Build & Smoke
+    name: Docker Build, Smoke & Conformance
     runs-on: ubuntu-latest
     needs: [lint]
     if: github.actor != 'dependabot[bot]'
@@ -61,6 +61,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
+      # Dev deps (artillery + the test kit) power the container tests and the
+      # conformance gate below.
+      - run: npm ci --no-audit --no-fund
       - name: Build image
         uses: docker/build-push-action@v6
         with:
@@ -95,6 +99,13 @@ jobs:
           echo "--- GET missing key (expect 404) ---"
           code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/does-not-exist)
           [ "$code" = "404" ] || { echo "expected 404, got $code"; exit 1; }
+      # Conformance gate: run the kit's expect suite against the container that
+      # the smoke test left running (healthy on :8080). Fails the job on any
+      # S3-website-semantics assertion failure.
+      - name: Conformance gate
+        run: npm run test:conformance
+        env:
+          TARGET: http://localhost:8080
       - name: Container logs
         if: always()
         run: docker logs s3proxy || true
