@@ -11,11 +11,11 @@
 # base: OS packages, production dependencies, and the app. Shared by all
 # stages and, on its own, the runnable production image.
 ########################################################################
-# Node 22 on Alpine (s3proxy requires Node >= 22.13), pinned by digest for
-# reproducible builds. This is the multi-arch manifest-list digest, so the
-# amd64 + arm64 publish both resolve from it. Dependabot (docker ecosystem,
-# weekly) bumps the tag + digest when a new 22-alpine ships.
-FROM node:22-alpine@sha256:16e22a550f3863206a3f701448c45f7912c6896a62de43add43bb9c86130c3e2 AS base
+# Node 24 (Active LTS) on Alpine (s3proxy requires Node >= 22.13), pinned by
+# digest for reproducible builds. This is the multi-arch manifest-list digest,
+# so the amd64 + arm64 publish both resolve from it. Dependabot (docker
+# ecosystem, weekly) bumps the tag + digest when a new 24-alpine ships.
+FROM node:24-alpine@sha256:a0b9bf06e4e6193cf7a0f58816cc935ff8c2a908f81e6f1a95432d679c54fbfd AS base
 
 ARG VERSION
 WORKDIR /src
