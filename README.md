@@ -106,7 +106,7 @@ Or via the `Makefile`: `make build`, `make lint`, `make test`, `make docker-test
 
 The [`Dockerfile`](./Dockerfile) is a multi-stage build:
 
-- **`base`** – Alpine + Node 22, production dependencies, and `server.js`.
+- **`base`** – Alpine + Node 24, production dependencies, and `server.js`.
   Runs as the non-root `node` user with `tini` as PID 1 for clean signal
   handling. This is the runnable image.
 - **`test`** – adds dev dependencies and the full source, runs `npm test`.
