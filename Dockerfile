@@ -15,7 +15,7 @@
 # digest for reproducible builds. This is the multi-arch manifest-list digest,
 # so the amd64 + arm64 publish both resolve from it. Dependabot (docker
 # ecosystem, weekly) bumps the tag + digest when a new 24-alpine ships.
-FROM node:24-alpine@sha256:a0b9bf06e4e6193cf7a0f58816cc935ff8c2a908f81e6f1a95432d679c54fbfd AS base
+FROM node:26-alpine@sha256:e88a35be04478413b7c71c455cd9865de9b9360e1f43456be5951032d7ac1a66 AS base
 
 ARG VERSION
 WORKDIR /src
