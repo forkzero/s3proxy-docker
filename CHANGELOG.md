@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.2.3](https://github.com/forkzero/s3proxy-docker/compare/v4.2.2...v4.2.3) (2026-10-31)
+
+
+### Bug Fixes
+
+* **deps:** bump hono to 4.13.14 to clear serveStatic advisory ([#121](https://github.com/forkzero/s3proxy-docker/issues/121)) ([cb86ca7](https://github.com/forkzero/s3proxy-docker/commit/cb86ca7254665f3865479d3b5975ac76304379fa))
+
 ## [4.2.2](https://github.com/forkzero/s3proxy-docker/compare/v4.2.1...v4.2.2) (2026-07-15)
 
 
