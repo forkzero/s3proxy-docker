@@ -1,5 +1,16 @@
 # Changelog
 
+## [5.0.0](https://github.com/forkzero/s3proxy-docker/compare/v4.2.3...v5.0.0) (2026-10-31)
+
+
+### ⚠ BREAKING CHANGES
+
+* **deps:** error responses for previously-unclassified S3 failures now return <error code="S3ProxyError" statusCode="500"> instead of the raw AWS error code/status/message. The classified 404/403/416 responses are unchanged. Clients that parsed the old raw-error responses should pin
+
+### Features
+
+* **deps:** upgrade s3proxy to 5.0.0 ([#124](https://github.com/forkzero/s3proxy-docker/issues/124)) ([82be4f2](https://github.com/forkzero/s3proxy-docker/commit/82be4f2dbc67b7344a0835920405d653d1a7849e))
+
 ## [4.2.3](https://github.com/forkzero/s3proxy-docker/compare/v4.2.2...v4.2.3) (2026-10-31)
 
 

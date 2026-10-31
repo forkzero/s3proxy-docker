@@ -1,7 +1,7 @@
 {
   "name": "s3proxy-docker",
   "description": "Docker runtime for s3proxy (Hono)",
-  "version": "4.2.3",
+  "version": "5.0.0",
   "type": "module",
   "engines": {
     "node": ">=24.0.0"
