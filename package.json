@@ -29,8 +29,8 @@
     "deps:check": "npm outdated"
   },
   "dependencies": {
-    "@hono/node-server": "^2.0.0",
-    "hono": "^4.12.15",
+    "@hono/node-server": "^2.1.5",
+    "hono": "^4.13.14",
     "s3proxy": "^4.2.1"
   },
   "devDependencies": {
