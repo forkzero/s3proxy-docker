@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.0.1](https://github.com/forkzero/s3proxy-docker/compare/v5.0.0...v5.0.1) (2026-11-01)
+
+
+### Bug Fixes
+
+* **deps:** upgrade s3proxy to 5.1.0 ([#126](https://github.com/forkzero/s3proxy-docker/issues/126)) ([a276444](https://github.com/forkzero/s3proxy-docker/commit/a2764440db8c3eb75b28528f7093b3cfe8b0d5ed))
+
 ## [5.0.0](https://github.com/forkzero/s3proxy-docker/compare/v4.2.3...v5.0.0) (2026-10-31)
 
 
