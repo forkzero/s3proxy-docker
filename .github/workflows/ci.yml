@@ -66,7 +66,7 @@ jobs:
       # conformance gate below.
       - run: npm ci --no-audit --no-fund
       - name: Build image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           target: production
