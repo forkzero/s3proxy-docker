@@ -36,7 +36,7 @@
   "devDependencies": {
     "@biomejs/biome": "^2.6.4",
     "@forkzero/s3-website-test-kit": "^0.2.1",
-    "artillery": "^2.0.33"
+    "artillery": "^2.0.34"
   },
   "keywords": [
     "s3",
