@@ -30,7 +30,7 @@
   },
   "dependencies": {
     "@hono/node-server": "^2.1.5",
-    "hono": "^4.13.14",
+    "hono": "^4.13.17",
     "s3proxy": "^5.1.0"
   },
   "devDependencies": {
